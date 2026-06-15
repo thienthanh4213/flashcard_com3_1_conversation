@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="COM3 (1) QA">
+<meta name="theme-color" content="#0ea5e9">
+<link rel="apple-touch-icon" href="">
+<title>✂️ COM3 (1) – Conversation Flashcard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f9ff;min-height:100vh;color:#1a202c}
+header{background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
+header h1{font-size:0.95rem;font-weight:700;line-height:1.3}
+#install-btn{background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:#fff;padding:5px 10px;border-radius:20px;font-size:0.75rem;cursor:pointer;display:none;flex-shrink:0;margin-left:8px}
+
+/* TABS */
+.tabs{display:flex;gap:6px;padding:10px 12px;overflow-x:auto;background:#fff;border-bottom:1px solid #e0f2fe}
+.tab{padding:6px 12px;border-radius:20px;border:1px solid #bae6fd;background:#f0f9ff;font-size:0.75rem;cursor:pointer;white-space:nowrap;transition:all .2s}
+.tab.active{background:#0ea5e9;color:#fff;border-color:#0ea5e9}
+
+/* STATS */
+.stats-bar{display:flex;gap:8px;padding:8px 12px;background:#fff;border-bottom:1px solid #e0f2fe;align-items:center;font-size:0.75rem;flex-wrap:wrap}
+.chip{padding:3px 10px;border-radius:12px;font-weight:600;font-size:0.72rem}
+.chip-rem{background:#d1fae5;color:#065f46}
+.chip-for{background:#fee2e2;color:#991b1b}
+.chip-left{background:#e0f2fe;color:#075985}
+.badge{background:#0ea5e9;color:#fff;padding:3px 10px;border-radius:12px;font-size:0.72rem;margin-left:auto}
+#shuffle-btn{background:#f0f9ff;border:1px solid #0ea5e9;color:#0369a1;padding:3px 10px;border-radius:12px;font-size:0.72rem;cursor:pointer;margin-left:4px}
+
+/* CARD AREA — đúng CSS chuẩn từ skill */
+.card-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 12px;min-height:calc(100vh - 230px)}
+.scene{width:100%;max-width:420px;perspective:900px;cursor:pointer}
+.card{width:100%;position:relative;transform-style:preserve-3d;transition:transform .55s ease;user-select:none}
+.card.flipped{transform:rotateY(180deg)}
+
+/* .face — min-height, KHÔNG height cố định */
+.face{position:relative;width:100%;min-height:210px;backface-visibility:hidden;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px 20px;box-shadow:0 4px 24px rgba(0,0,0,0.11)}
+
+/* FRONT — câu hỏi / tình huống */
+.front{background:#fff;border:2px solid #bae6fd}
+.front-label{font-size:0.68rem;font-weight:700;color:#0ea5e9;letter-spacing:.6px;text-transform:uppercase;margin-bottom:10px;background:#e0f2fe;padding:2px 10px;border-radius:10px}
+.question-text{font-size:1.05rem;font-weight:600;color:#0c4a6e;text-align:center;line-height:1.6}
+.vocab-chip{display:inline-block;background:#fff7ed;border:1px solid #fed7aa;color:#c2410c;border-radius:8px;padding:1px 8px;font-size:0.75rem;margin-top:8px;font-weight:600}
+.flip-hint-front{color:#94a3b8;font-size:0.7rem;margin-top:14px}
+.audio-btn{background:#0ea5e9;color:#fff;border:none;padding:6px 16px;border-radius:20px;font-size:0.8rem;cursor:pointer;margin-top:10px}
+.audio-btn:active{background:#0284c7}
+
+/* BACK — câu trả lời */
+.back{position:absolute;top:0;left:0;height:100%;background:linear-gradient(145deg,#0c4a6e,#0369a1);color:#fff;transform:rotateY(180deg);border-radius:18px;padding:22px 20px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:10px}
+.back-label{font-size:0.68rem;font-weight:700;color:#7dd3fc;letter-spacing:.6px;text-transform:uppercase;background:rgba(255,255,255,0.1);padding:2px 10px;border-radius:10px;align-self:flex-start}
+.answer-text{font-size:0.97rem;font-weight:500;color:#fff;line-height:1.65;text-align:left;width:100%}
+/* highlight từ vựng trong câu trả lời */
+.answer-text .hl{background:#fef08a;color:#1a202c;border-radius:4px;padding:0 4px;font-weight:700}
+.extra-info{font-size:0.8rem;color:#bae6fd;line-height:1.5;border-top:1px solid rgba(255,255,255,0.2);padding-top:10px;width:100%;text-align:left}
+.extra-info .hl{background:rgba(254,240,138,0.25);color:#fef08a;border-radius:3px;padding:0 3px;font-weight:600}
+.flip-hint-back{color:rgba(255,255,255,0.45);font-size:0.68rem;margin-top:6px;align-self:center}
+.audio-btn-back{background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.4);padding:6px 16px;border-radius:20px;font-size:0.8rem;cursor:pointer;align-self:center;margin-top:2px}
+.audio-btn-back:active{background:rgba(255,255,255,0.25)}
+
+/* NAV */
+.nav-row{display:flex;gap:10px;margin-top:14px;width:100%;max-width:420px;justify-content:center}
+.nav-btn{padding:10px 14px;border-radius:24px;border:none;cursor:pointer;font-size:0.83rem;font-weight:600;transition:all .2s;flex:1;max-width:90px}
+.btn-prev{background:#e2e8f0;color:#4a5568}
+.btn-forget{background:#fee2e2;color:#dc2626;flex:1.3;max-width:115px}
+.btn-rem{background:#d1fae5;color:#059669;flex:1.3;max-width:115px}
+.btn-next{background:#e2e8f0;color:#4a5568}
+
+/* PROGRESS */
+.progress-wrap{width:100%;max-width:420px;margin-top:12px}
+.progress-bar{height:6px;background:#e0f2fe;border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#0ea5e9,#38bdf8);border-radius:3px;transition:width .3s}
+.progress-text{text-align:center;font-size:0.72rem;color:#64748b;margin-top:4px}
+
+/* END / VICTORY */
+.end-screen{display:none;flex-direction:column;align-items:center;padding:24px;text-align:center;min-height:calc(100vh - 230px)}
+.end-screen h2{font-size:1.35rem;font-weight:700;color:#1a202c;margin:12px 0 6px}
+.forget-list{width:100%;max-width:420px;background:#fff;border-radius:12px;padding:12px;margin:12px 0;text-align:left;max-height:260px;overflow-y:auto;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+.forget-item{padding:7px 8px;border-bottom:1px solid #f0f9ff;font-size:0.8rem}
+.forget-item:last-child{border-bottom:none}
+.forget-q{font-weight:600;color:#0c4a6e;margin-bottom:2px}
+.forget-a{color:#64748b;font-size:0.75rem}
+.review-btn{background:#0ea5e9;color:#fff;border:none;padding:12px 28px;border-radius:24px;font-size:0.9rem;font-weight:700;cursor:pointer;margin-top:8px}
+.victory{display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;min-height:calc(100vh - 230px)}
+.victory h2{font-size:1.8rem;font-weight:700;color:#0ea5e9}
+.restart-btn{background:#0ea5e9;color:#fff;border:none;padding:12px 28px;border-radius:24px;font-size:0.9rem;font-weight:700;cursor:pointer;margin-top:16px}
+
+/* iOS MODAL */
+.ios-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:999;align-items:flex-end;justify-content:center}
+.ios-modal.show{display:flex}
+.ios-box{background:#fff;border-radius:20px 20px 0 0;padding:24px;width:100%;max-width:480px}
+.ios-box h3{font-size:1rem;font-weight:700;margin-bottom:12px}
+.ios-step{display:flex;align-items:center;gap:10px;margin:8px 0;font-size:0.85rem;color:#4a5568}
+.ios-close{background:#f0f4f8;border:none;padding:10px;border-radius:12px;width:100%;margin-top:14px;cursor:pointer;font-weight:600}
+</style>
+</head>
+<body>
+<header>
+  <h1>✂️ COM3 (1) – Conversation Flashcard</h1>
+  <button id="install-btn" onclick="handleInstall()">📲 Cài App</button>
+</header>
+<div class="tabs" id="tabs"></div>
+<div class="stats-bar">
+  <span class="chip chip-rem">✓ Nhớ: <span id="cnt-rem">0</span></span>
+  <span class="chip chip-for">✗ Quên: <span id="cnt-for">0</span></span>
+  <span class="chip chip-left">◎ Còn: <span id="cnt-left">0</span></span>
+  <span class="badge" id="round-badge">Vòng 1</span>
+  <button id="shuffle-btn" onclick="shuffleDeck()">🔀 Shuffle</button>
+</div>
+
+<div class="card-area" id="card-area">
+  <div class="scene" onclick="flipCard()">
+    <div class="card" id="the-card">
+      <div class="face front" id="front-face">
+        <span class="front-label">💬 Situation / Question</span>
+        <div class="question-text" id="fc-q"></div>
+        <div class="vocab-chip" id="fc-vocab"></div>
+        <button class="audio-btn" onclick="playFront(event)">🔊 Nghe câu hỏi</button>
+        <div class="flip-hint-front">👆 Tap to see the answer</div>
+      </div>
+      <div class="face back" id="back-face">
+        <span class="back-label">✅ Response</span>
+        <div class="answer-text" id="fc-ans"></div>
+        <button class="audio-btn-back" onclick="playBack(event)">🔊 Nghe câu trả lời</button>
+        <div class="extra-info" id="fc-extra"></div>
+        <div class="flip-hint-back">👆 Tap to flip back</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-row">
+    <button class="nav-btn btn-prev" onclick="goPrev()">← Prev</button>
+    <button class="nav-btn btn-forget" onclick="markForget()">😕 Quên</button>
+    <button class="nav-btn btn-rem" onclick="markRemember()">✓ Nhớ</button>
+    <button class="nav-btn btn-next" onclick="goNext()">Next →</button>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+    <div class="progress-text" id="prog-text"></div>
+  </div>
+</div>
+
+<div class="end-screen" id="end-screen">
+  <div style="font-size:3rem">😕</div>
+  <h2>Còn <span id="forget-count">0</span> thẻ chưa nhớ</h2>
+  <p style="color:#718096;font-size:0.85rem;margin-bottom:4px">Ôn lại những thẻ này:</p>
+  <div class="forget-list" id="forget-list"></div>
+  <button class="review-btn" onclick="reviewForget()">🔁 Ôn lại ngay</button>
+</div>
+
+<div class="victory" id="victory">
+  <div style="font-size:4rem">🏆</div>
+  <h2>Xuất sắc!</h2>
+  <p style="color:#718096;margin-top:8px">Bạn đã trả lời thành thạo tất cả tình huống!</p>
+  <button class="restart-btn" onclick="restart()">🔄 Làm lại từ đầu</button>
+</div>
+
+<div class="ios-modal" id="ios-modal">
+  <div class="ios-box">
+    <h3>📲 Cài app lên iPhone</h3>
+    <div class="ios-step">1️⃣ Nhấn <strong>Chia sẻ ⎙</strong> ở Safari</div>
+    <div class="ios-step">2️⃣ Chọn <strong>Thêm vào Màn hình chính</strong></div>
+    <div class="ios-step">3️⃣ Nhấn <strong>Thêm</strong></div>
+    <button class="ios-close" onclick="document.getElementById('ios-modal').classList.remove('show')">Đóng</button>
+  </div>
+</div>
+
+<script>
+// h(text) = wrap a word in highlight span
+function h(t){return`<span class="hl">${t}</span>`}
+
+const ALL_CARDS = [
+// ── Hair & Body ──
+{group:"Hair & Body",
+ q:`Your hair looks different — the color is lighter near the roots. What happened?`,
+ vocab:"fade / faded",
+ ans:`Yeah, my hair color has <span class="hl">faded</span>. When new hair grows, it's naturally darker near the roots, but near the ends it's <span class="hl">faded</span> — much lighter.`,
+ extra:`💡 <span class="hl">fade</span> (v.) = phai màu dần &nbsp;|&nbsp; <span class="hl">faded</span> (adj.) = đã phai, nhạt hơn<br>e.g. "The faded ends look like an ombre style."`},
+
+{group:"Hair & Body",
+ q:`Did you dye your hair yourself, or did you go to a salon?`,
+ vocab:"dye / separately",
+ ans:`I <span class="hl">dyed</span> it at the salon. They bleached and colored each section <span class="hl">separately</span> — not together — to get an even result.`,
+ extra:`💡 <span class="hl">dye</span> (v.) = nhuộm &nbsp;|&nbsp; <span class="hl">separately</span> = từng phần riêng lẻ<br>e.g. "She dyed the top and bottom separately."`},
+
+{group:"Hair & Body",
+ q:`I bumped my leg against the table. Now the skin is turning purple. What is this called?`,
+ vocab:"purple / bruise",
+ ans:`That's a <span class="hl">bruise</span>. When you hit something hard, blood collects under the skin and it turns <span class="hl">purple</span> or dark blue. It'll fade in a few days.`,
+ extra:`💡 <span class="hl">bruise</span> (n./v.) = vết bầm / bị bầm &nbsp;|&nbsp; <span class="hl">purple</span> = màu tím bầm<br>e.g. "Put ice on the bruise to reduce swelling."`},
+
+{group:"Hair & Body",
+ q:`My skin feels itchy. What should I do — should I scratch it?`,
+ vocab:"itchy / scratch",
+ ans:`I know it's hard, but try not to <span class="hl">scratch</span> it! Scratching makes it worse. If it's very <span class="hl">itchy</span>, apply some cream or cold water instead.`,
+ extra:`💡 <span class="hl">itchy</span> (adj.) = ngứa &nbsp;|&nbsp; <span class="hl">scratch</span> (v.) = gãi / cào<br>e.g. "The mosquito bite is so itchy I can't stop scratching."`},
+
+// ── Health ──
+{group:"Health",
+ q:`The doctor said I have blood-related issues. What could that mean?`,
+ vocab:"blood / symptom",
+ ans:`It could mean many things — like high blood pressure, low iron, or diabetes. The doctor will look at your <span class="hl">symptoms</span> and run a <span class="hl">blood</span> test to find out exactly.`,
+ extra:`💡 <span class="hl">blood</span> (n.) = máu &nbsp;|&nbsp; <span class="hl">symptom</span> (n.) = triệu chứng<br>e.g. "Common symptoms include fatigue and dizziness."`},
+
+{group:"Health",
+ q:`My friend is quite overweight and has trouble moving. What condition might they have?`,
+ vocab:"obesity",
+ ans:`It sounds like <span class="hl">obesity</span>. Patients with <span class="hl">obesity</span> often struggle with mobility, joint pain, and their heart and respiratory systems are under more pressure.`,
+ extra:`💡 <span class="hl">obesity</span> (n.) = béo phì<br>e.g. "Obesity increases the risk of diabetes and heart disease."`},
+
+{group:"Health",
+ q:`The doctor mentioned my auditory system is affected. What does that mean?`,
+ vocab:"system",
+ ans:`The auditory <span class="hl">system</span> is the system that controls your hearing. If it's affected, it may cause difficulty hearing or make sounds unclear — like the <span class="hl">system</span> can't process sounds properly.`,
+ extra:`💡 <span class="hl">system</span> (n.) = hệ thống<br>e.g. "The nervous system / immune system / auditory system."`},
+
+{group:"Health",
+ q:`What causes your cramp? Does it happen after exercise?`,
+ vocab:"cramp / joint",
+ ans:`Yes, my leg <span class="hl">cramps</span> usually happen after lifting weights. I think my <span class="hl">joints</span> and muscles get tight when I don't stretch enough after training.`,
+ extra:`💡 <span class="hl">cramp</span> (n.) = chuột rút &nbsp;|&nbsp; <span class="hl">joint</span> (n.) = khớp xương<br>e.g. "Stretch your joints before exercise to prevent cramps."`},
+
+// ── Body & Action ──
+{group:"Body & Action",
+ q:`Can you walk as normal after your injury, or does it still hurt?`,
+ vocab:"lift weight / poke through",
+ ans:`I can walk normally now, but I still can't <span class="hl">lift weights</span> yet. The injury was on my knee — it felt like something was <span class="hl">poking through</span> the joint, so I'm taking it slow.`,
+ extra:`💡 <span class="hl">lift weight</span> = tập tạ &nbsp;|&nbsp; <span class="hl">poke through</span> = chọc xuyên qua<br>e.g. "He poked through the bandage by accident."`},
+
+{group:"Body & Action",
+ q:`Please stand straight — you're leaning too much to one side.`,
+ vocab:"stand straight / occupy",
+ ans:`Sorry! I'll <span class="hl">stand straight</span> now. I didn't realize I was leaning. I also shouldn't spread out so much — I'm <span class="hl">occupying</span> a lot of space here.`,
+ extra:`💡 <span class="hl">stand straight</span> = đứng thẳng &nbsp;|&nbsp; <span class="hl">occupy</span> (v.) = chiếm không gian<br>e.g. "He occupies the whole couch when he sits down."`},
+
+{group:"Body & Action",
+ q:`The photographer said: "Stay still! Don't move a muscle!"`,
+ vocab:"stay still",
+ ans:`OK, I'll <span class="hl">stay still</span>! Like a <span class="hl">still</span> picture — no movement at all. Just tell me when you're ready to take the shot.`,
+ extra:`💡 <span class="hl">stay still</span> = đứng yên, không cử động<br><span class="hl">still picture</span> = ảnh tĩnh (không chuyển động)<br>e.g. "Stay still or the photo will be blurry."`},
+
+// ── Posture ──
+{group:"Posture",
+ q:`I noticed you lean toward your phone a lot. Is your neck OK?`,
+ vocab:"lean toward",
+ ans:`Ha, yeah — I tend to <span class="hl">lean toward</span> the screen when I'm focused. It's a bad habit. My neck has been sore lately because of it.`,
+ extra:`💡 <span class="hl">lean toward</span> = nghiêng người về phía<br>e.g. "She leaned toward him to whisper something."`},
+
+{group:"Posture",
+ q:`Why are you leaning on the railing? Are you tired?`,
+ vocab:"lean on",
+ ans:`A little, yeah. I've been standing for a while so I'm <span class="hl">leaning on</span> the railing to rest. It's nice to have something to support you when you're tired!`,
+ extra:`💡 <span class="hl">lean on</span> = tựa vào (ban công, lan can, người khác)<br>e.g. "She leaned on her friend's shoulder."`},
+
+{group:"Posture",
+ q:`You look very relaxed — are you leaning against the wall?`,
+ vocab:"lean against",
+ ans:`Yes! I'm <span class="hl">leaning against</span> the wall — it's the most comfortable way to stand when you don't have a chair nearby. Very casual, I know!`,
+ extra:`💡 <span class="hl">lean against</span> = dựa lưng vào (tường, cửa)<br>e.g. "He leaned against the door and waited."`},
+
+// ── Communication ──
+{group:"Communication",
+ q:`How do you express your feelings when you're upset? Do you talk or stay quiet?`,
+ vocab:"express",
+ ans:`I prefer to <span class="hl">express</span> what I feel — I think keeping it inside only makes things worse. I try to <span class="hl">express</span> my irritation calmly rather than yelling.`,
+ extra:`💡 <span class="hl">express</span> (v.) = thể hiện, bày tỏ = show that<br>e.g. "Express yourself clearly so others understand."`},
+
+{group:"Communication",
+ q:`There are a lot of foreigners in this area. Do you feel comfortable talking to them?`,
+ vocab:"foreigner / manner",
+ ans:`Yes! I enjoy talking with <span class="hl">foreigners</span>. I try to speak in a friendly, natural <span class="hl">manner</span> — a lovely tone helps them feel comfortable too.`,
+ extra:`💡 <span class="hl">foreigner</span> (n.) = người nước ngoài<br><span class="hl">manner</span> (n.) = phong thái, cách cư xử<br>e.g. "She greeted everyone in a warm, lovely manner."`},
+
+{group:"Communication",
+ q:`Your little brother keeps running around the classroom. Is he well-behaved?`,
+ vocab:"well-behaved",
+ ans:`Ha, not really today! He's usually <span class="hl">well-behaved</span>, but when he's excited he forgets himself. I'll remind him to calm down and act properly.`,
+ extra:`💡 <span class="hl">well-behaved</span> (adj.) = cư xử tốt, ngoan ngoãn<br>e.g. "The teacher praised the well-behaved students."`},
+
+{group:"Communication",
+ q:`You said the internet cut out during the meeting. What happened exactly?`,
+ vocab:"interruption",
+ ans:`There was an <span class="hl">interruption</span> in the connection — the internet suddenly dropped for about two minutes. It was a brief <span class="hl">interruption</span> but it broke the whole flow of the meeting.`,
+ extra:`💡 <span class="hl">interruption</span> (n.) = sự gián đoạn (mạng, cuộc họp, nói chuyện)<br>e.g. "Sorry for the interruption — please continue."`},
+
+{group:"Communication",
+ q:`Do you think it's better to confess a mistake early, or wait and hope no one notices?`,
+ vocab:"confess",
+ ans:`Definitely <span class="hl">confess</span> early! If you wait, things get worse. When you <span class="hl">confess</span>, people respect you more for being honest — and you avoid bigger problems later.`,
+ extra:`💡 <span class="hl">confess</span> (v.) = thú nhận, thú tội<br>e.g. "He confessed that he had made an error in the report."`},
+
+{group:"Communication",
+ q:`Someone told me my idea is nonsense. How do I respond professionally?`,
+ vocab:"nonsense",
+ ans:`Don't take it personally. You can say: "I understand it might seem like <span class="hl">nonsense</span>, but let me explain the reasoning behind it." Stay calm and back up your idea with evidence.`,
+ extra:`💡 <span class="hl">nonsense</span> (n.) = vô nghĩa, nhảm nhí<br>e.g. "That's nonsense — it doesn't make any sense at all."`},
+
+// ── Emotion ──
+{group:"Emotion",
+ q:`You look irritated. What happened? Did something bother you?`,
+ vocab:"irritated / discharge",
+ ans:`Yeah, I'm a bit <span class="hl">irritated</span> — there was a long queue and I waited for nothing. I needed to <span class="hl">discharge</span> my frustration, so I went for a walk to cool down.`,
+ extra:`💡 <span class="hl">irritated</span> (adj.) = bực bội, khó chịu<br><span class="hl">discharge</span> (v.) = xả ra (cảm xúc, sự bực bội)<br>e.g. "She shouted to discharge her anger."`},
+
+{group:"Emotion",
+ q:`When something frustrates you, do you yell, or do you stay self-controlled?`,
+ vocab:"self-controlled",
+ ans:`I try to stay <span class="hl">self-controlled</span>. I don't yell — instead I breathe deeply and think before I react. Being <span class="hl">self-controlled</span> doesn't mean you don't feel the emotion, just that you manage it well.`,
+ extra:`💡 <span class="hl">self-controlled</span> (adj.) = tự kiểm soát cảm xúc bản thân<br>e.g. "A self-controlled person thinks before speaking."`},
+
+{group:"Emotion",
+ q:`Someone said something hurtful to you. Can you accept it or not?`,
+ vocab:"nonsense / irritated",
+ ans:`Honestly, I can't accept it — it's <span class="hl">nonsense</span> and it doesn't make sense to me. I felt <span class="hl">irritated</span> at first, but I'm trying not to let it affect me too much.`,
+ extra:`💡 <span class="hl">cannot accept it</span> = không thể chấp nhận<br><span class="hl">nonsense</span> = vô lý, vô nghĩa &nbsp;|&nbsp; <span class="hl">irritated</span> = bực bội`},
+
+// ── Nature & Poetry ──
+{group:"Nature & Poetry",
+ q:`Someone said: "I am just a grain of sand among millions." What does that mean?`,
+ vocab:"grain of sand",
+ ans:`It means they feel very small and insignificant — just one tiny <span class="hl">grain of sand</span> among millions of other <span class="hl">grains of sand</span> in a <span class="hl">desert</span>. It's a poetic way to express humility.`,
+ extra:`💡 <span class="hl">grain of sand</span> = hạt cát &nbsp;|&nbsp; <span class="hl">desert</span> /ˈdɛzərt/ = sa mạc<br>⚠️ Đừng nhầm với <span class="hl">dessert</span> /dɪˈzɜːrt/ = món tráng miệng!`},
+
+{group:"Nature & Poetry",
+ q:`When it rains, do the raindrops fall randomly, or is there a pattern?`,
+ vocab:"droplet / randomly",
+ ans:`Rain <span class="hl">droplets</span> follow gravity — so they don't fall <span class="hl">randomly</span> in every direction. Each <span class="hl">droplet</span> falls straight down. <span class="hl">Randomly</span> would mean some going sideways or up — which doesn't happen naturally!`,
+ extra:`💡 <span class="hl">droplet</span> (n.) = giọt nhỏ<br><span class="hl">randomly</span> (adv.) = một cách ngẫu nhiên, không theo quy luật<br>e.g. "The words were not placed randomly — each one was chosen carefully."`},
+
+// ── Core Vocab ──
+{group:"Core Vocab",
+ q:`He was charged after the police found evidence. What does "be charged" mean here?`,
+ vocab:"be charged",
+ ans:`<span class="hl">Be charged</span> means the police formally accused him of a crime. He was <span class="hl">charged</span> with theft, which means the case will now go to court.`,
+ extra:`💡 <span class="hl">be charged</span> = bị buộc tội, bị truy tố chính thức<br>e.g. "She was charged with fraud and faced a trial."`},
+
+{group:"Core Vocab",
+ q:`The wind blew directly toward me and I got cold suddenly. What happened next?`,
+ vocab:"separately",
+ ans:`That cold wind hit you hard! If the wind blows directly at you, you get cold instantly — your body temperature drops <span class="hl">separately</span> from the rest of the room. That's probably why you got a fever after.`,
+ extra:`💡 <span class="hl">blow toward</span> = thổi trực tiếp về phía<br><span class="hl">separately</span> = một cách tách biệt, riêng lẻ<br>e.g. "Wash dark and light clothes separately."`},
+];
+
+const GROUPS = ['Tất cả', ...new Set(ALL_CARDS.map(c => c.group))];
+let currentGroup = 'Tất cả';
+let deck = [], forgotten = [], remembered = [], round = 1, idx = 0;
+let deferInstall = null;
+
+function getFiltered(){
+  return currentGroup==='Tất cả' ? [...ALL_CARDS] : ALL_CARDS.filter(c=>c.group===currentGroup);
+}
+function buildTabs(){
+  document.getElementById('tabs').innerHTML = GROUPS.map(g=>
+    `<button class="tab${g===currentGroup?' active':''}" onclick="setGroup('${g}')">${g}</button>`
+  ).join('');
+}
+function setGroup(g){currentGroup=g;buildTabs();restart();}
+
+function start(){
+  deck=getFiltered();forgotten=[];remembered=[];round=1;idx=0;
+  renderCard();updateStats();
+  document.getElementById('card-area').style.display='flex';
+  document.getElementById('end-screen').style.display='none';
+  document.getElementById('victory').style.display='none';
+}
+function restart(){start();}
+
+function renderCard(){
+  if(!deck.length){showEnd();return;}
+  const c=deck[idx];
+  document.getElementById('fc-q').textContent=c.q;
+  document.getElementById('fc-vocab').textContent='🔑 '+c.vocab;
+  document.getElementById('fc-ans').innerHTML=c.ans;
+  document.getElementById('fc-extra').innerHTML=c.extra||'';
+  document.getElementById('the-card').classList.remove('flipped');
+  updateProgress();
+}
+// ── Advanced TTS — 🎙️ Male (question) / 👩 Female (answer) + random pick ──
+let _voicesMale = null, _voicesFemale = null;
+
+function _loadVoices() {
+  if (_voicesMale && _voicesFemale) return true;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return false;
+  const en = voices.filter(v => v.lang.startsWith('en'));
+
+  // Female candidates (best → fallback)
+  const femaleTests = [
+    v => v.name === 'Samantha',
+    v => v.name === 'Karen',
+    v => v.name === 'Moira',
+    v => v.name === 'Victoria',
+    v => v.name === 'Fiona',
+    v => /Microsoft (Jenny|Aria|Emma|Michelle|Sonia)/i.test(v.name),
+    v => /Microsoft.*Natural/i.test(v.name) && /jenny|aria|emma/i.test(v.name),
+    v => /Google.*US.*Female/i.test(v.name),
+    v => /Google.*English/i.test(v.name) && v.lang === 'en-US',
+  ];
+  // Male candidates (best → fallback)
+  const maleTests = [
+    v => v.name === 'Daniel',
+    v => v.name === 'Fred',
+    v => v.name === 'Alex',
+    v => v.name === 'Tom',
+    v => v.name === 'Oliver',
+    v => /Microsoft (Guy|Brian|Ryan|Eric|Roger|Steffan)/i.test(v.name),
+    v => /Microsoft.*Natural/i.test(v.name) && /guy|brian|ryan/i.test(v.name),
+    v => /Google.*US.*Male/i.test(v.name),
+  ];
+
+  const pickPool = (tests) => {
+    const pool = [];
+    for (const t of tests) {
+      const v = voices.find(t);
+      if (v && !pool.includes(v)) { pool.push(v); if (pool.length >= 3) break; }
+    }
+    return pool.length ? pool : null;
+  };
+
+  _voicesFemale = pickPool(femaleTests);
+  _voicesMale   = pickPool(maleTests);
+
+  // Heuristic fallback nếu không tìm được đúng giới tính
+  if (!_voicesMale) {
+    const m = en.filter(v => /daniel|fred|alex|tom|oliver|guy|brian|ryan|eric/i.test(v.name));
+    _voicesMale = m.length ? m : [en[0]];
+  }
+  if (!_voicesFemale) {
+    const f = en.filter(v => /samantha|karen|victoria|jenny|aria|emma|moira|fiona/i.test(v.name));
+    _voicesFemale = f.length ? f : [en[en.length - 1]];
+  }
+  return true;
+}
+
+function _randomFrom(pool) { return pool[Math.floor(Math.random() * pool.length)]; }
+
+function speak(text, gender) {
+  const clean = text
+    .replace(/[💡⚠️🔑✅💬🔊→|]/g, '')
+    .replace(/\(.*?\)/g, '')
+    .replace(/e\.g\..*/gi, '')
+    .replace(/\s+/g, ' ').trim();
+  if (!clean) return;
+
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(clean);
+  u.lang   = 'en-US';
+  u.rate   = 0.87;
+  u.pitch  = gender === 'male' ? 0.88 : 1.12;
+  u.volume = 1;
+
+  const doSpeak = () => {
+    _loadVoices();
+    const pool  = gender === 'male' ? _voicesMale : _voicesFemale;
+    const voice = pool ? _randomFrom(pool) : null;
+    if (voice) u.voice = voice;
+    window.speechSynthesis.speak(u);
+  };
+
+  if (!window.speechSynthesis.getVoices().length) {
+    window.speechSynthesis.onvoiceschanged = () => {
+      _voicesMale = null; _voicesFemale = null; doSpeak();
+    };
+  } else { doSpeak(); }
+}
+
+// Preload voices sớm nhất có thể
+if (window.speechSynthesis) {
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged = () => { _voicesMale = null; _voicesFemale = null; _loadVoices(); };
+}
+
+function playFront(e) { e.stopPropagation(); speak(document.getElementById('fc-q').textContent,  'male'); }
+function playBack(e)  { e.stopPropagation(); speak(document.getElementById('fc-ans').innerText, 'female'); }
+function flipCard(){document.getElementById('the-card').classList.toggle('flipped');}
+function markRemember(){
+  if(!deck.length)return;
+  remembered.push(deck[idx]);
+  deck.splice(idx,1);
+  if(idx>=deck.length)idx=Math.max(0,deck.length-1);
+  if(!deck.length){showEnd();return;}
+  renderCard();updateStats();
+}
+function markForget(){
+  if(!deck.length)return;
+  if(!forgotten.find(x=>x.q===deck[idx].q))forgotten.push(deck[idx]);
+  idx=(idx+1)%deck.length;
+  renderCard();updateStats();
+}
+function goNext(){if(!deck.length)return;idx=(idx+1)%deck.length;renderCard();}
+function goPrev(){if(!deck.length)return;idx=(idx-1+deck.length)%deck.length;renderCard();}
+function shuffleDeck(){
+  for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}
+  idx=0;renderCard();
+}
+function updateStats(){
+  document.getElementById('cnt-rem').textContent=remembered.length;
+  document.getElementById('cnt-for').textContent=forgotten.length;
+  document.getElementById('cnt-left').textContent=deck.length;
+  document.getElementById('round-badge').textContent=round===1?'Vòng 1':`🔁 Ôn lại: Vòng ${round}`;
+}
+function updateProgress(){
+  const total=deck.length+remembered.length;
+  const pct=total?Math.round(remembered.length/total*100):0;
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-text').textContent=`${remembered.length}/${total} thẻ đã nhớ (${pct}%)`;
+}
+function showEnd(){
+  if(!forgotten.length){showVictory();return;}
+  document.getElementById('card-area').style.display='none';
+  document.getElementById('end-screen').style.display='flex';
+  document.getElementById('forget-count').textContent=forgotten.length;
+  document.getElementById('forget-list').innerHTML=forgotten.map(f=>`
+    <div class="forget-item">
+      <div class="forget-q">❓ ${f.q.length>70?f.q.substring(0,70)+'...':f.q}</div>
+      <div class="forget-a">🔑 ${f.vocab}</div>
+    </div>`).join('');
+}
+function showVictory(){
+  document.getElementById('card-area').style.display='none';
+  document.getElementById('end-screen').style.display='none';
+  document.getElementById('victory').style.display='flex';
+}
+function reviewForget(){
+  deck=[...forgotten];forgotten=[];remembered=[];idx=0;round++;
+  document.getElementById('card-area').style.display='flex';
+  document.getElementById('end-screen').style.display='none';
+  renderCard();updateStats();
+}
+
+// PWA
+const PWA_NAME="COM3 (1) – Conversation",PWA_SHORT="COM3 QA",PWA_EMOJI="💬",PWA_COLOR="#0ea5e9";
+function genIcon(s){const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}"><rect width="${s}" height="${s}" rx="${s*.22}" fill="${PWA_COLOR}"/><text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-size="${s*.45}">${PWA_EMOJI}</text><text x="50%" y="82%" text-anchor="middle" font-size="${s*.11}" font-family="sans-serif" fill="rgba(255,255,255,0.9)" font-weight="bold">${PWA_SHORT}</text></svg>`;return 'data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svg)));}
+function injectManifest(){const m={name:PWA_NAME,short_name:PWA_SHORT,description:'COM3 Conversation Flashcard',start_url:'./',display:'standalone',background_color:'#f0f9ff',theme_color:PWA_COLOR,orientation:'portrait',icons:[{src:genIcon(192),sizes:'192x192',type:'image/svg+xml',purpose:'any maskable'},{src:genIcon(512),sizes:'512x512',type:'image/svg+xml',purpose:'any maskable'}]};const b=new Blob([JSON.stringify(m)],{type:'application/json'});const l=document.createElement('link');l.rel='manifest';l.href=URL.createObjectURL(b);document.head.appendChild(l);document.querySelector('link[rel="apple-touch-icon"]').href=genIcon(180);}
+function registerSW(){if(!('serviceWorker' in navigator))return;const c=`const CACHE='com3qa-v1';self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['./'])));self.skipWaiting();});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>caches.match('./'))));});`;const b=new Blob([c],{type:'application/javascript'});navigator.serviceWorker.register(URL.createObjectURL(b)).catch(()=>{});}
+function handleInstall(){if(deferInstall){deferInstall.prompt();}else if(/iPhone|iPad|iPod/.test(navigator.userAgent)){document.getElementById('ios-modal').classList.add('show');}}
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferInstall=e;document.getElementById('install-btn').style.display='block';});
+
+document.addEventListener('DOMContentLoaded',()=>{
+  injectManifest();registerSW();buildTabs();start();
+  if(/iPhone|iPad|iPod/.test(navigator.userAgent)&&!window.navigator.standalone){document.getElementById('install-btn').style.display='block';}
+});
+</script>
+</body>
+</html>
